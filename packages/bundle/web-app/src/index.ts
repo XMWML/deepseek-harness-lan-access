@@ -78,10 +78,14 @@ function authorityForHost(host: string): string {
   return isIP(host) === 6 && !host.startsWith('[') ? `[${host}]` : host
 }
 
+function withoutIpv6Zone(host: string): string {
+  return isIP(host.split('%', 1)[0] ?? '') === 6 ? host.split('%', 1)[0]! : host
+}
+
 function collectLanAddresses(): string[] {
   return Object.values(networkInterfaces()).flat()
-    .filter((iface): iface is NonNullable<typeof iface> => iface !== undefined && !iface.internal && isIP(iface.address) !== 0)
-    .map(iface => authorityForHost(iface.address))
+    .filter((iface): iface is NonNullable<typeof iface> => iface !== undefined && !iface.internal && isIP(withoutIpv6Zone(iface.address)) !== 0)
+    .map(iface => authorityForHost(withoutIpv6Zone(iface.address)))
 }
 
 /**
