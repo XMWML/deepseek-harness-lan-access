@@ -11,6 +11,7 @@
  */
 
 import { createRequire } from 'node:module'
+import { isIP } from 'node:net'
 import { networkInterfaces } from 'node:os'
 import { fileURLToPath } from 'node:url'
 import type { Context } from '@deepseek-ai/cordis'
@@ -57,7 +58,7 @@ export const Config: z<Config> = z.object({
 
 /** Bind-dependent Web values shared by the trust fence and URL display. */
 export interface WebRuntimeValues {
-  /** LAN IPv4 literals sampled once when the server binds all interfaces. */
+  /** LAN IPv4/IPv6 literals sampled once when the server binds a wildcard. */
   lanAddresses: string[]
   /** LAN literals followed by explicit invocation authorities. */
   trustedHosts: string[]
@@ -71,6 +72,17 @@ const DSH_WEB_URL = 'DSH_WEB_URL' as const
 const LOOPBACK_HOST = '127.0.0.1'
 /** The webserver schema's all-interfaces bind literal. */
 const ALL_INTERFACES_HOST = '0.0.0.0'
+const IPV6_ALL_INTERFACES_HOST = '::'
+
+function authorityForHost(host: string): string {
+  return isIP(host) === 6 && !host.startsWith('[') ? `[${host}]` : host
+}
+
+function collectLanAddresses(): string[] {
+  return Object.values(networkInterfaces()).flat()
+    .filter((iface): iface is NonNullable<typeof iface> => iface !== undefined && !iface.internal && isIP(iface.address) !== 0)
+    .map(iface => authorityForHost(iface.address))
+}
 
 /**
  * Resolve one LAN-trust snapshot from the active server bind.
@@ -83,12 +95,10 @@ const ALL_INTERFACES_HOST = '0.0.0.0'
  * @returns the LAN display addresses and invocation-derived fence authorities.
  */
 export function resolveLanTrust(bindHost: string, extra: readonly string[]): WebRuntimeValues {
-  const lanAddresses = bindHost === ALL_INTERFACES_HOST
-    ? Object.values(networkInterfaces()).flat()
-      .filter((iface): iface is NonNullable<typeof iface> => iface !== undefined && iface.family === 'IPv4' && !iface.internal)
-      .map(iface => iface.address)
-    : []
-  return { lanAddresses, trustedHosts: [...lanAddresses, ...extra] }
+  const wildcard = bindHost === ALL_INTERFACES_HOST || bindHost === IPV6_ALL_INTERFACES_HOST
+  const lanAddresses = wildcard ? collectLanAddresses() : []
+  const boundAddress = wildcard || isIP(bindHost) === 0 ? [] : [authorityForHost(bindHost)]
+  return { lanAddresses, trustedHosts: [...new Set([...boundAddress, ...lanAddresses, ...extra])] }
 }
 
 /** Model-visible orientation and acceptance boundary for sessions created through `dsh web`. */

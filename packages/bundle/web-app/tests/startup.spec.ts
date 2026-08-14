@@ -55,7 +55,7 @@ export const apply = ctx => globalThis.__webStartupApply(ctx)
     `  name: ${pathToFileURL(join(dir, 'reader.mjs')).href}`,
     `  inject: [${WEB_STARTUP_SERVICE}]`,
     '  config:',
-    "    host: !!js ctx.webStartup.host ?? '127.0.0.1'",
+    "    host: !!js ctx.webStartup.host ?? '::'",
     '    port: !!js ctx.webStartup.port ?? 3080',
     '    trustedHosts: !!js ctx.webStartup.trustedHosts',
     '- id: provider',
@@ -106,7 +106,7 @@ describe('web command-line provider', () => {
     const { values, observed } = await bootProvider([])
     expect(values).toEqual({ trustedHosts: [] })
     expect(observed.readerConfig).toEqual({
-      host: '127.0.0.1',
+      host: '::',
       port: 3080,
       trustedHosts: [],
     })
@@ -131,7 +131,7 @@ describe('web command-line provider', () => {
 
   it('rejects the intentionally unsupported all-interfaces host before the consumer activates', async () => {
     const { values, observed } = await bootProvider(['--host', '0.0.0.0'])
-    expect(observed.out).toContain('--host 0.0.0.0 is intentionally not supported yet for safety: it would expose remote code execution to the network; use 127.0.0.1 instead')
+    expect(observed.out).toContain('--host 0.0.0.0 is intentionally not supported for safety')
     expect(values).toBeUndefined()
     expect(observed.readerConfig).toBeUndefined()
     expect(observed.exits).toEqual([1])

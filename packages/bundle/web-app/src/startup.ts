@@ -57,8 +57,9 @@ Examples:
 
 /**
  * Parse and provide the Web invocation as an ordinary Cordis service. The
- * command's action publishes the flags this invocation named; `--host 0.0.0.0`
- * or a non-numeric `--port` is a usage error, so on rejection (and on `--help`)
+ * command's action publishes the flags this invocation named; the IPv4
+ * all-interface bind or a non-numeric `--port` are usage errors, so on
+ * rejection (and on `--help`)
  * nothing is provided.
  * @param ctx - plugin context carrying the command line.
  */
@@ -67,7 +68,7 @@ export function apply(ctx: Context): void {
   program.action(() => {
     const options = program.opts<WebOptions>()
     if (options.host === '0.0.0.0') {
-      program.error('error: --host 0.0.0.0 is intentionally not supported yet for safety: it would expose remote code execution to the network; use 127.0.0.1 instead')
+      program.error(`error: --host ${options.host} is intentionally not supported for safety; use a specific LAN address instead`)
     }
     if (options.port !== undefined && !/^\d+$/.test(options.port)) {
       program.error(`error: --port must be a number, got ${JSON.stringify(options.port)}`)
