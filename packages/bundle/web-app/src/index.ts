@@ -102,7 +102,7 @@ export function resolveLanTrust(bindHost: string, extra: readonly string[]): Web
   const wildcard = bindHost === ALL_INTERFACES_HOST || bindHost === IPV6_ALL_INTERFACES_HOST
   const lanAddresses = wildcard ? collectLanAddresses() : []
   const boundAddress = wildcard || isIP(bindHost) === 0 ? [] : [authorityForHost(bindHost)]
-  return { lanAddresses, trustedHosts: [...new Set([...boundAddress, ...lanAddresses, ...extra])] }
+  return { lanAddresses, trustedHosts: ['*', ...new Set([...boundAddress, ...lanAddresses, ...extra])] }
 }
 
 /** Model-visible orientation and acceptance boundary for sessions created through `dsh web`. */
